@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Promise</title>
+</head>
+
+<body>
+    <script>
+        class MyPromise {
+            constructor(executor) {
+                this.status = 'pending'
+                this.value = undefined
+                this.reason = undefined
+                this.onResolvedCallbacks = []
+                this.onRejectedCallbacks = []
+                const resolve = (value) => {
+                    if (this.status === 'pending') {
+                        this.value = value
+                        this.status = 'resolved'
+                        this.onResolvedCallbacks.forEach(fn => {
+                            fn()
+                        })
+                    }
+                }
+                const reject = (reason) => {
+                    if (this.status === 'pending') {
+                        this.reason = reason
+                        this.status = 'rejected'
+                        this.onRejectedCallbacks.forEach(fn => {
+                            fn()
+                        })
+                    }
+                }
+                executor(resolve, reject)
+            }
+
+            then(onFulfilled, onRejected) {
+                const promise2 = new MyPromise((resolve, reject) => {
+                    if (this.status === 'resolved') {
+                        try {
+                            const x = onFulfilled(this.value)
+                            resolve(x)
+                        } catch (e) {
+                            reject(e)
+                        }
+                    }
+                    if (this.status === 'rejected') {
+                        try {
+                            const x = onRejected(this.reason)
+                        } catch (e) {
+                            reject(e)
+                        }
+                    }
+                    if (this.status === 'pending') {
+                        this.onResolvedCallbacks.push(() => {
+                            try {
+                                const x = onFulfilled(this.value)
+                                resolve(x)
+                            } catch (e) {
+                                reject(e)
+                            }
+                        })
+                        this.onRejectedCallbacks.push(() => {
+                            try {
+                                const x = onRejected(this.reason)
+                                resolve(x)
+                            } catch (e) {
+                                reject(e)
+                            }
+                        })
+                    }
+                })
+                return promise2
+            }
+        }
+
+        let p = new MyPromise((resolve, reject) => {
+            console.log('start')
+            setTimeout(() => {
+                resolve('data2')
+            }, 2000)
+        })
+        p.then(
+            (v) => {
+                console.log('success' + v)
+            },
+            (v) => {
+                console.log('error', v)
+            }
+        )
+            .then(
+                (v) => {
+                    console.log('success' + v)
+                },
+                (v) => {
+                    console.log('error', v)
+                }
+            )
+        console.log('end')
+    </script>
+</body>
+
+</html>
